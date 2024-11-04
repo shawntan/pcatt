@@ -160,9 +160,9 @@ def alter_graph(items, X_W_arr, D_arr, substring_idx):
 
     Args:
         items (List[int]): Each item is a quartet that represents the positions of the word and substring location
-        X_W_arr (_type_): _description_
-        D_arr (_type_): _description_
-        substring_idx (_type_): _description_
+        X_W_arr (_type_): array to indicate positions of selected tokens, -1 for singletons
+        D_arr (_type_): array to indicate positions of duplicates
+        substring_idx (_type_): set position to token id of substring
 
     Returns:
         _type_: _description_
@@ -220,7 +220,7 @@ def init_globals(W_array, C_array, D_array):
 def main():
     """
     # Quick execute
-    nohup python -u substring_cache.py --domain un -w 50 -k 5000 > logs/un2.log &
+    nohup python -u greedy_cache.py --domain un -w 50 -k 5000 > logs/un2.log &
     """
 
     parser = argparse.ArgumentParser()
