@@ -13,7 +13,7 @@
 using namespace std;
 namespace chrono = std::chrono;
 
-// g++ -std=c++20 -o greedy.exe greedy.cpp -ltbb -O3
+// g++ -std=c++20 -o greedy.exe greedy_cache.cpp -ltbb -O3
 
 vector<string> splitString(string &str, const char &splitter)
 {
@@ -161,89 +161,6 @@ long unsigned get_score_helper(const vector<SubstringPos> &places, const vector<
     return counts;
 }
 
-class Visited
-{
-    vector<int unsigned> *D_arr_ptr;
-    vector<int unsigned> *T_arr_ptr;
-    const vector<vector<SubstringPos>> baskets;
-    const int substring_idx;
-
-public:
-    unordered_set<long unsigned> substrings;
-
-    Visited(int &substring_idx, vector<vector<SubstringPos>> &baskets, vector<int unsigned> *T_arr_ptr, vector<int unsigned> *D_arr_ptr)
-        : baskets(baskets), T_arr_ptr(T_arr_ptr), D_arr_ptr(D_arr_ptr), substring_idx(substring_idx)
-    {
-    }
-
-    Visited(Visited &x, auto split)
-        : baskets(x.baskets), T_arr_ptr(x.T_arr_ptr), D_arr_ptr(x.D_arr_ptr), substring_idx(x.substring_idx)
-    {
-    }
-
-    void operator()(const tbb::blocked_range<int> &r)
-    {
-        for (long unsigned it = r.begin(); it < r.end(); ++it)
-        {
-            long unsigned prev_w_start = -1;
-            int d_counter = 0;
-            for (SubstringPos p : baskets[it])
-            {
-                const long unsigned ws = p.arr_start;
-                const long unsigned we = p.arr_end;
-                const int i = p.word_start;
-                const int j = p.word_end;
-                if (i > 0 && (*T_arr_ptr)[ws + i - 1] != 0 && (*T_arr_ptr)[ws + i - 1] == (*T_arr_ptr)[ws + i] && (*D_arr_ptr)[ws + i - 1] == (*D_arr_ptr)[ws + i])
-                {
-                    continue;
-                }
-                if (ws + j < we && (*T_arr_ptr)[ws + j] != 0 && (*T_arr_ptr)[ws + j - 1] == (*T_arr_ptr)[ws + j] && (*D_arr_ptr)[ws + j - 1] == (*D_arr_ptr)[ws + j])
-                {
-                    continue;
-                }
-
-                substrings.insert(ws);
-                if (ws != prev_w_start)
-                {
-                    d_counter = 0;
-                }
-                if (ws == prev_w_start)
-                {
-                    d_counter += 1;
-                }
-                for (long unsigned k = ws + i; k < ws + j; ++k)
-                {
-                    (*T_arr_ptr)[k] = substring_idx;
-                    (*D_arr_ptr)[k] = d_counter;
-                }
-                prev_w_start = ws;
-            }
-        }
-    }
-    void join(const Visited &y)
-    {
-        substrings.insert(y.substrings.begin(), y.substrings.end());
-    }
-};
-
-unordered_set<long unsigned> alter_graph2(vector<SubstringPos> &items, vector<int unsigned> *T_arr_ptr, vector<int unsigned> *D_arr_ptr, int &substring_idx)
-{
-
-    unordered_map<long unsigned, vector<SubstringPos>> temp;
-    vector<vector<SubstringPos>> baskets{};
-    for (SubstringPos &p : items)
-    {
-        temp[p.arr_start].push_back(p);
-    }
-    for (auto &kv : temp)
-    {
-        baskets.push_back(kv.second);
-    }
-    Visited v(substring_idx, baskets, T_arr_ptr, D_arr_ptr);
-    oneapi::tbb::parallel_reduce(tbb::blocked_range<int>(0, baskets.size()), v);
-    return v.substrings;
-}
-
 unordered_set<long unsigned> alter_graph(const vector<SubstringPos> &items, vector<int unsigned> *T_arr_ptr, vector<int unsigned> *D_arr_ptr, const int &substring_idx)
 {
 
@@ -285,21 +202,12 @@ unordered_set<long unsigned> alter_graph(const vector<SubstringPos> &items, vect
     return visited;
 }
 
-int pool_helper(long unsigned start, long unsigned stop, vector<string> &items, unordered_map<string, vector<SubstringPos>> &substring_to_index, vector<int unsigned> *T_arr_ptr, vector<int unsigned> *D_arr_ptr, unordered_map<long unsigned, long unsigned> &id_to_count, unordered_map<string, long unsigned> *results_ptr)
-{
-
-    for (long unsigned a = start; a < stop; a++)
-    {
-        (*results_ptr)[items[a]] = get_score_helper(substring_to_index[items[a]], T_arr_ptr, D_arr_ptr, id_to_count);
-    }
-    return 1;
-}
-
 int main(int argc, char *argv[])
 {
     int thread_count = 10;
     string domain = argv[1];
     int k = stoi(argv[2]);
+    auto total_start = chrono::high_resolution_clock::now();
     auto start = chrono::high_resolution_clock::now();
     unordered_map<string, long unsigned> word_counts = get_counts(domain);
 
@@ -367,9 +275,9 @@ int main(int argc, char *argv[])
         results[s] = 0;
     }
     auto stop = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::seconds>(stop - start);
+    auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
     cout << "Initial Setup: "
-         << duration.count() << " seconds" << endl;
+         << duration.count() << " ms" << endl;
 
     cout << "starting" << endl;
     for (int rank = 1; rank <= k; ++rank)
@@ -387,7 +295,7 @@ int main(int argc, char *argv[])
         scores.push_back(best.second);
 
         stop = chrono::high_resolution_clock::now();
-        duration = chrono::duration_cast<chrono::seconds>(stop - start);
+        duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
         unordered_set<long unsigned> visited = alter_graph(substring_to_index[best.first], &T_arr, &D_arr, rank);
 
         shortlist.clear();
@@ -403,8 +311,8 @@ int main(int argc, char *argv[])
         results.erase(best.first);
 
         stop = chrono::high_resolution_clock::now();
-        auto duration2 = chrono::duration_cast<chrono::seconds>(stop - start);
-        cout << rank << ". |" << best.first << " | " << best.second << " | " << duration.count() << " seconds | " << duration2.count() << " seconds | shortlist: " << shortlist.size() << endl;
+        auto duration2 = chrono::duration_cast<chrono::milliseconds>(stop - start);
+        cout << rank << ". |" << best.first << " | " << best.second << " | " << duration.count() << " ms | " << duration2.count() << " ms | shortlist: " << shortlist.size() << endl;
     }
 
     string out_dir = "cpp_outputs/" + domain;
@@ -424,4 +332,7 @@ int main(int argc, char *argv[])
         f << s << endl;
     }
     f.close();
+    stop = chrono::high_resolution_clock::now();
+    auto total_duration = chrono::duration_cast<chrono::seconds>(stop - total_start);
+    cout << "total time taken: " << total_duration.count() << " seconds" <<endl;
 }
