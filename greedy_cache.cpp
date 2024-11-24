@@ -85,21 +85,21 @@ struct SubstringPos
 {
     long unsigned arr_start;
     long unsigned arr_end;
-    int word_start;
-    int word_end;
+    int substr_start;
+    int substr_end;
     SubstringPos() {};
     SubstringPos(long unsigned a, long unsigned b, int c, int d)
     {
         arr_start = a;
         arr_end = b;
-        word_start = c;
-        word_end = d;
+        substr_start = c;
+        substr_end = d;
     }
 };
 
 bool sp_sorter(SubstringPos const &lhs, SubstringPos const &rhs)
 {
-    return lhs.arr_start < rhs.arr_start;
+    return lhs.substr_start < rhs.substr_start;
 }
 
 long unsigned get_score_helper(const vector<SubstringPos> &places, const vector<int unsigned> *T_arr_ptr, const vector<int unsigned> *D_arr_ptr, const unordered_map<long unsigned, long unsigned> &id_to_count)
@@ -127,8 +127,8 @@ long unsigned get_score_helper(const vector<SubstringPos> &places, const vector<
 
             const long unsigned ws = p.arr_start;
             const long unsigned we = p.arr_end;
-            const int i = p.word_start;
-            const int j = p.word_end;
+            const int i = p.substr_start;
+            const int j = p.substr_end;
             if (ws + i < prev_end)
             {
                 continue;
@@ -171,8 +171,8 @@ unordered_set<long unsigned> alter_graph(const vector<SubstringPos> &items, vect
     {
         const long unsigned ws = p.arr_start;
         const long unsigned we = p.arr_end;
-        const int i = p.word_start;
-        const int j = p.word_end;
+        const int i = p.substr_start;
+        const int j = p.substr_end;
 
         if (i > 0 && (*T_arr_ptr)[ws + i - 1] != 0 && (*T_arr_ptr)[ws + i - 1] == (*T_arr_ptr)[ws + i] && (*D_arr_ptr)[ws + i - 1] == (*D_arr_ptr)[ws + i])
         {
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
     vector<int unsigned> D_arr(char_count, 0);
     unordered_set<string> shortlist;
     vector<string> saved_merges;
-    unordered_map<string, int> ranks;
+    vector<string> ranks;
     vector<long unsigned> scores;
     for (auto &s : substring_to_index)
     {
@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
 
         pair<string, long unsigned> best = *max_element(results.begin(), results.end(), [](const pair<string, long unsigned> a, const pair<string, long unsigned> b)
                                                         { return a.second < b.second; });
-        ranks[best.first] = rank;
+        ranks.push_back(best.first);
         scores.push_back(best.second);
 
         stop = chrono::high_resolution_clock::now();
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
         }
         for (auto &r : ranks)
         {
-            shortlist.erase(r.first);
+            shortlist.erase(r);
         }
         results.erase(best.first);
 
@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
     f.open(out_dir + "/tokens.txt");
     for (auto r : ranks)
     {
-        f << r.first << " ";
+        f << r << " ";
     }
     f.close();
     f.open(out_dir + "/merges.txt");
