@@ -6,11 +6,12 @@ from collections import defaultdict
 from multiprocessing import Pool, Array
 from time import process_time
 from tqdm import tqdm
-
+import operator
+from functools import reduce
 
 """
 # Quick execute
-nohup python -u greedy_cache.py --domain un -w 40 -k 40 -k 15000 > logs/un2.log &
+nohup python -u greedy_cache.py --domain un -w 40 -k 5000 > logs/un2.log &
 nohup python -u greedy_cache.py --domain arxiv -w 100 -k 5000 > logs/arxiv2.log &
 nohup python -u greedy_cache.py --domain pubmed -w 100 -k 5000 > logs/pubmed2.log &
 nohup python -u greedy_cache.py --domain wiki -w 100 -k 5000 > logs/wiki2.log &
@@ -149,7 +150,7 @@ def get_score_helper(inputs):
             if X_W_arr[w_start + k] == -1:
                 nones += 1
             else:
-                uniqs.add(X_W_arr[w_start + k])
+                uniqs.add((X_W_arr[w_start + k], D_arr[w_start + k]))
         counts += C_arr[w_start] * (nones + len(uniqs) - 1)
         checked[w_start].append((i, j))
     return substring, counts
@@ -239,8 +240,7 @@ def main():
     ranks = {}  # selected tokens
     scores = []  # track contribution at each step
     shortlist = set(S2W.keys())  # substrings to be examined
-    saved_merges = []  # cache to save previous computations
-
+    saved_merges = {}  # cache to save previous computations
     with Pool(
         args.workers,
         initializer=init_globals,
@@ -251,14 +251,19 @@ def main():
 
             # parallel compute (Python-specific)
             merges = pool.map(
-                get_score_helper, [s for s in S2W.items() if s[0] in shortlist]
+                get_score_helper,  # [s for s in S2W.items() if s[0] in shortlist]
+                [(s, S2W[s]) for s in shortlist],
             )
-            merges.extend(saved_merges)
+            # merges.extend(saved_merges)
+            saved_merges.update({k: v for k, v in merges})
 
             # find best substring and its contribution
-            merge_substring, score = max(merges, key=lambda x: (x[-1], len(x[0])))
+            merge_substring, score = max(
+                saved_merges.items(), key=lambda x: (x[1], len(x[0]))
+            )
             ranks[merge_substring] = rank_id
             scores.append(score)
+            del saved_merges[merge_substring]
 
             # update current environment
             start2 = process_time()
@@ -273,11 +278,8 @@ def main():
             shortlist = set([token for v in visited for token in W2S[v]]) - set(
                 ranks.keys()
             )
-            saved_merges = [
-                s for s in merges if s[0] not in ranks and s[0] not in shortlist
-            ]
             print(
-                merge_substring,
+                reduce(operator.add, merge_substring, b""),
                 f"({score}) | mp time: {start2-start:.4f}",
                 f"misc time: {process_time()-start2:.4f} | saved: {len(saved_merges)}",
             )

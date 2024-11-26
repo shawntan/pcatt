@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <unordered_set>
+#include <set>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
@@ -142,7 +143,7 @@ long unsigned get_score_helper(const vector<SubstringPos> &places, const vector<
                 continue;
             }
             int nones = 0;
-            unordered_set<int> uniqs;
+            set<pair<int unsigned, int unsigned>> uniqs;
             for (int k = i; k < j; ++k)
             {
                 if ((*T_arr_ptr)[ws + k] == 0)
@@ -151,7 +152,7 @@ long unsigned get_score_helper(const vector<SubstringPos> &places, const vector<
                 }
                 else
                 {
-                    uniqs.insert((*T_arr_ptr)[ws + k]);
+                    uniqs.insert(pair((*T_arr_ptr)[ws + k], (*D_arr_ptr)[ws + k]));
                 }
             }
             counts += id_to_count.at(ws) * (nones + uniqs.size() - 1);
@@ -316,7 +317,8 @@ int main(int argc, char *argv[])
     }
 
     string out_dir = "cpp_outputs/" + domain;
-    if (!filesystem::is_directory(out_dir) || !filesystem::exists(out_dir)) {
+    if (!filesystem::is_directory(out_dir) || !filesystem::exists(out_dir))
+    {
         filesystem::create_directory(out_dir);
     }
     ofstream f;
@@ -334,5 +336,5 @@ int main(int argc, char *argv[])
     f.close();
     stop = chrono::high_resolution_clock::now();
     auto total_duration = chrono::duration_cast<chrono::seconds>(stop - total_start);
-    cout << "total time taken: " << total_duration.count() << " seconds" <<endl;
+    cout << "total time taken: " << total_duration.count() << " seconds" << endl;
 }
