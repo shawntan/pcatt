@@ -11,3 +11,7 @@ Initialize environment variables
 cd <install_dir>
 . ./oneapi/tbb/latest/env/vars.sh
 ```
+
+```
+c++ -O3 -Wall -shared -std=c++20 -ltbb -fPIC $(python3 -m pybind11 --includes) greedy_builder.cpp -o greedy_builder$(python3-config --extension-suffix)
+```
