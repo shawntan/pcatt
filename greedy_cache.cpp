@@ -205,7 +205,6 @@ unordered_set<long unsigned> alter_graph(const vector<SubstringPos> &items, vect
 
 int main(int argc, char *argv[])
 {
-    int thread_count = 10;
     string domain = argv[1];
     int k = stoi(argv[2]);
     auto total_start = chrono::high_resolution_clock::now();
@@ -313,7 +312,11 @@ int main(int argc, char *argv[])
 
         stop = chrono::high_resolution_clock::now();
         auto duration2 = chrono::duration_cast<chrono::milliseconds>(stop - start);
-        cout << rank << ". |" << best.first << " | " << best.second << " | " << duration.count() << " ms | " << duration2.count() << " ms | shortlist: " << shortlist.size() << endl;
+        cout << rank << ". |" << best.first << " [" << hex;
+        for (auto c : best.first) {
+            cout << (unsigned int)(unsigned char)c << " ";
+        }
+        cout << dec << "] | " << best.second << " | " << duration.count() << " ms | " << duration2.count() << " ms | shortlist: " << shortlist.size()  << endl;
     }
 
     string out_dir = "cpp_outputs/" + domain;
@@ -322,13 +325,18 @@ int main(int argc, char *argv[])
         filesystem::create_directory(out_dir);
     }
     ofstream f;
-    f.open(out_dir + "/tokens.txt");
+    f.open(out_dir + "/tokens2.txt");
+    f  << hex << setfill('0');
     for (auto r : ranks)
     {
-        f << r << " ";
+        for (auto c : r) {
+            f << setw(2) << (unsigned int)(unsigned char)c << " ";
+        }
+        f << endl;
     }
+    f << dec;
     f.close();
-    f.open(out_dir + "/merges.txt");
+    f.open(out_dir + "/merges2.txt");
     for (auto s : scores)
     {
         f << s << endl;
