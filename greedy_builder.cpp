@@ -94,11 +94,11 @@ public:
         {
             if (T_arr[i] == 0)
             {
-                result.push_back((int unsigned)word[i]);
+                result.push_back((int unsigned) (char unsigned) word[i]);
             }
             else
             {
-                result.push_back(256 + T_arr[i]);
+                result.push_back(255 + T_arr[i]);
                 i += rules.at(T_arr[i] - 1).size() - 1;
             }
         }
