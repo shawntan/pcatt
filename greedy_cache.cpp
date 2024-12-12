@@ -313,10 +313,11 @@ int main(int argc, char *argv[])
         stop = chrono::high_resolution_clock::now();
         auto duration2 = chrono::duration_cast<chrono::milliseconds>(stop - start);
         cout << rank << ". |" << best.first << " [" << hex;
-        for (auto c : best.first) {
+        for (auto c : best.first)
+        {
             cout << (unsigned int)(unsigned char)c << " ";
         }
-        cout << dec << "] | " << best.second << " | " << duration.count() << " ms | " << duration2.count() << " ms | shortlist: " << shortlist.size()  << endl;
+        cout << dec << "] | " << best.second << " | " << duration.count() << " ms | " << duration2.count() << " ms | shortlist: " << shortlist.size() << endl;
     }
 
     string out_dir = "cpp_outputs/" + domain;
@@ -325,18 +326,19 @@ int main(int argc, char *argv[])
         filesystem::create_directory(out_dir);
     }
     ofstream f;
-    f.open(out_dir + "/tokens2.txt");
-    f  << hex << setfill('0');
+    f.open(out_dir + "/tokens.txt");
+    f << hex << setfill('0');
     for (auto r : ranks)
     {
-        for (auto c : r) {
+        for (auto c : r)
+        {
             f << setw(2) << (unsigned int)(unsigned char)c << " ";
         }
         f << endl;
     }
     f << dec;
     f.close();
-    f.open(out_dir + "/merges2.txt");
+    f.open(out_dir + "/merges.txt");
     for (auto s : scores)
     {
         f << s << endl;
