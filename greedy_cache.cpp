@@ -262,7 +262,6 @@ int main(int argc, char *argv[])
     vector<int unsigned> T_arr(char_count, 0);
     vector<int unsigned> D_arr(char_count, 0);
     unordered_set<string> shortlist;
-    vector<string> saved_merges;
     vector<string> ranks;
     vector<long unsigned> scores;
     for (auto &s : substring_to_index)
