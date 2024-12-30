@@ -1,50 +1,53 @@
-# An optimization approach to tokenization
+# A partition cover approach to tokenization
 
-### Greedy Approximate Solution
-1. Install dependencies for C++ code, we use oneTBB to parallelize the code:
+### GreedTok 
+1. Install dependencies for C++ code, we use oneTBB to parallelize the code, simplest way is to use Conda:
 ```
-wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/96aa5993-5b22-4a9b-91ab-da679f422594/intel-oneapi-base-toolkit-2025.0.0.885_offline.sh
-sudo sh ./intel-oneapi-base-toolkit-2025.0.0.885_offline.sh -a --cli
-cd <install_dir>
+conda install tbb-devel
 ```
-2. Initialize environment variables:
-```
-cd <install_dir>
-. ./oneapi/tbb/latest/env/vars.sh
-```
-3. Compile greedy_cache.cpp:
-```
-c++ -std=c++20 -o greedy.exe greedy_cache.cpp -ltbb -O3
-```
-4. Prepare inputs (refer to [cpp_inputs](https://github.com/PreferredAI/aoatt/blob/main/cpp_inputs) for examples):
-    * counts: a file with '\n' delimited integers
-    * words: a file with ' ' (space) delimited words
-5. Run compiled program
-    * currently looks for domain inputs in fixed path under cpp_inputs/*
-    * To-do: pybind11 implementation
-```
-./greedy.exe <domain> <k>
-```
-
-6. Now we obtained our ranked token sequence (refer to [cpp_outputs](https://github.com/PreferredAI/aoatt/blob/main/cpp_outputs/) for examples):
-    * merges: the number of merges at each step, delimited by '\n'
-    * tokens: byte sequences in hex-format, delimited by '\n'
-        * If only valid byte sequences are required, we have to prune the candidate token space [To-do]
-        * Current implementation sees every possible substring
-
-### Using the obtained ranked token sequence
-To use the tokenizer, we also need the previous oneTBB dependency.
-1. Additionally, install pybind11 dependency, simply:
-```
-pip3 install pybind11
-```
-2. Compile greedy_builder.cpp
-```
-c++ -O3 -Wall -shared -std=c++20 -ltbb -fPIC $(python3 -m pybind11 --includes) greedy_builder.cpp -o greedy_builder$(python3-config --extension-suffix)
-```
-3. Import in python
+2. If using python wrapper (Todo: automate pip installation)
    
-Examples in [eval_tokenizer_example.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_tokenizer_example.ipynb)
+    a. Install pybind11, simply:
+      ```
+      pip install pybind11
+      ```
+    b. Compile greedy_builder
+      ```
+      c++ -O3 -Wall -shared -std=c++20 \
+      -fPIC $(python3 -m pybind11 --includes) \
+      -I$CONDA_PREFIX/include/ \
+      -I$CONDA_PREFIX/include/tbb \
+      -I$CONDA_PREFIX/include/oneapi \
+      -L$CONDA_PREFIX/lib/ \
+      -l tbb \
+      ./pcatt/greedy_builder.cpp \
+      -o ./pcatt/greedy_builder$(python3-config --extension-suffix) 
+      ```
+    c. import and use! Examples in [eval_tokenizer_example.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_tokenizer_example.ipynb)
+3. If using C++ files directly
+
+    a. Compile greedy_cache.py
+      ```
+      c++ -O3 -std=c++20 \
+      -I$CONDA_PREFIX/include/ \
+      -I$CONDA_PREFIX/include/tbb \
+      -I$CONDA_PREFIX/include/oneapi \
+      -L$CONDA_PREFIX/lib/ \
+      -l tbb \
+      pcatt/greedy_cache.cpp \
+      -o pcatt/greedy.exe 
+      ```
+    b. Prepare inputs (refer to [cpp_inputs](https://github.com/PreferredAI/aoatt/blob/main/cpp_inputs) for examples):
+      * counts: a file with '\n' delimited integers
+      * words: a file with ' ' (space) delimited words
+        
+    c. Run compiled program (currently looks for domain inputs in fixed path under cpp_inputs/*)
+        ```
+         ./greedy.exe <domain> <k>
+        ```
+    d. Now we obtained our ranked token sequence (refer to [cpp_outputs](https://github.com/PreferredAI/aoatt/blob/main/cpp_outputs/) for examples):
+      * merges: the number of covers at each step, delimited by '\n'
+      * tokens: byte sequences in hex-format, delimited by '\n'
 
 Evaluations in [eval_notebook.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_notebook.ipynb)
 
