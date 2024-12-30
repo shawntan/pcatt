@@ -3,7 +3,6 @@
 #include <fstream>
 #include <string>
 #include <unordered_set>
-#include <set>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
@@ -14,8 +13,16 @@
 using namespace std;
 namespace chrono = std::chrono;
 
-// g++ -std=c++20 -o greedy.exe greedy_cache.cpp -ltbb -O3
-
+/*
+c++ -O3 -std=c++20 \
+-I$CONDA_PREFIX/include/ \
+-I$CONDA_PREFIX/include/tbb \
+-I$CONDA_PREFIX/include/oneapi \
+-L$CONDA_PREFIX/lib/ \
+-l tbb \
+pcatt/max_cover.cpp \
+-o pcatt/max_cover.exe
+*/
 vector<string> splitString(string &str, const char &splitter)
 {
     vector<string> result;
@@ -103,7 +110,7 @@ bool sp_sorter(SubstringPos const &lhs, SubstringPos const &rhs)
     return lhs.substr_start < rhs.substr_start;
 }
 
-long unsigned get_score_helper(const vector<SubstringPos> &places, const vector<int unsigned> *T_arr_ptr, const vector<int unsigned> *D_arr_ptr, const unordered_map<long unsigned, long unsigned> &id_to_count)
+long unsigned get_score_helper(const vector<SubstringPos> &places, const vector<bool> *T_arr_ptr, const unordered_map<long unsigned, long unsigned> &id_to_count)
 {
     long unsigned counts = 0;
 
@@ -122,47 +129,29 @@ long unsigned get_score_helper(const vector<SubstringPos> &places, const vector<
         long unsigned prev_end = 0;
         sort( // execution::par,
             pp.second.begin(), pp.second.end(), &sp_sorter);
-
         for (auto &p : pp.second)
         {
-
             const long unsigned ws = p.arr_start;
             const long unsigned we = p.arr_end;
             const int i = p.substr_start;
             const int j = p.substr_end;
-            if (ws + i < prev_end)
-            {
-                continue;
-            }
-            if (i > 0 && (*T_arr_ptr)[ws + i - 1] != 0 && (*T_arr_ptr)[ws + i - 1] == (*T_arr_ptr)[ws + i] && (*D_arr_ptr)[ws + i - 1] == (*D_arr_ptr)[ws + i])
-            {
-                continue;
-            }
-            if (ws + j < we && (*T_arr_ptr)[ws + j] != 0 && (*T_arr_ptr)[ws + j - 1] == (*T_arr_ptr)[ws + j] && (*D_arr_ptr)[ws + j - 1] == (*D_arr_ptr)[ws + j])
-            {
-                continue;
-            }
-            int nones = 0;
-            set<pair<int unsigned, int unsigned>> uniqs;
-            for (int k = i; k < j; ++k)
+            const int start = ws + i < prev_end ? prev_end : i;
+            int cover = 0;
+            for (int k = start; k < j; ++k)
             {
                 if ((*T_arr_ptr)[ws + k] == 0)
                 {
-                    nones += 1;
-                }
-                else
-                {
-                    uniqs.insert(pair((*T_arr_ptr)[ws + k], (*D_arr_ptr)[ws + k]));
+                    cover += 1;
                 }
             }
-            counts += id_to_count.at(ws) * (nones + uniqs.size() - 1);
+            counts += id_to_count.at(ws) * cover;
             prev_end = ws + j;
         }
     }
     return counts;
 }
 
-unordered_set<long unsigned> alter_graph(const vector<SubstringPos> &items, vector<int unsigned> *T_arr_ptr, vector<int unsigned> *D_arr_ptr, const int &substring_idx)
+unordered_set<long unsigned> alter_graph(const vector<SubstringPos> &items, vector<bool> *T_arr_ptr)
 {
 
     unordered_set<long unsigned> visited;
@@ -175,28 +164,10 @@ unordered_set<long unsigned> alter_graph(const vector<SubstringPos> &items, vect
         const int i = p.substr_start;
         const int j = p.substr_end;
 
-        if (i > 0 && (*T_arr_ptr)[ws + i - 1] != 0 && (*T_arr_ptr)[ws + i - 1] == (*T_arr_ptr)[ws + i] && (*D_arr_ptr)[ws + i - 1] == (*D_arr_ptr)[ws + i])
-        {
-            continue;
-        }
-        if (ws + j < we && (*T_arr_ptr)[ws + j] != 0 && (*T_arr_ptr)[ws + j - 1] == (*T_arr_ptr)[ws + j] && (*D_arr_ptr)[ws + j - 1] == (*D_arr_ptr)[ws + j])
-        {
-            continue;
-        }
-
         visited.insert(ws);
-        if (ws != prev_w_start)
-        {
-            d_counter = 0;
-        }
-        if (ws == prev_w_start)
-        {
-            d_counter += 1;
-        }
         for (long unsigned k = ws + i; k < ws + j; ++k)
         {
-            (*T_arr_ptr)[k] = substring_idx;
-            (*D_arr_ptr)[k] = d_counter;
+            (*T_arr_ptr)[k] = true;
         }
         prev_w_start = ws;
     }
@@ -207,7 +178,6 @@ int main(int argc, char *argv[])
 {
     string domain = argv[1];
     int k = stoi(argv[2]);
-    auto total_start = chrono::high_resolution_clock::now();
     auto start = chrono::high_resolution_clock::now();
     unordered_map<string, long unsigned> word_counts = get_counts(domain);
 
@@ -225,10 +195,12 @@ int main(int argc, char *argv[])
 
     for (auto &item : word_counts)
     {
-
-        char_count += item.first.size();
-
-        end_id = next_id + item.first.size();
+        if (item.first.size() <= 1)
+        {
+            continue;
+        }
+        char_count += item.first.size() - 1;
+        end_id = next_id + item.first.size() - 1;
         id_to_count[next_id] = item.second;
 
         word_to_index[item.first] = pair(next_id, end_id);
@@ -247,7 +219,7 @@ int main(int argc, char *argv[])
                 {
                     substring_to_index[substr] = vector<SubstringPos>();
                 }
-                substring_to_index[substr].push_back({next_id, end_id, i, j});
+                substring_to_index[substr].push_back({next_id, end_id, i, j - 1});
                 word_to_substring[item.first].insert(substr);
             }
         }
@@ -259,9 +231,10 @@ int main(int argc, char *argv[])
         index_to_word[kv.second.first] = kv.first;
     }
 
-    vector<int unsigned> T_arr(char_count, 0);
-    vector<int unsigned> D_arr(char_count, 0);
+    vector<bool> T_arr(char_count, 0);
+    vector<bool> D_arr(char_count, 0);
     unordered_set<string> shortlist;
+    vector<string> saved_merges;
     vector<string> ranks;
     vector<long unsigned> scores;
     for (auto &s : substring_to_index)
@@ -286,16 +259,26 @@ int main(int argc, char *argv[])
         vector<string> items(shortlist.begin(), shortlist.end());
         oneapi::tbb::parallel_for(tbb::blocked_range<long unsigned>(0, items.size()), [&](tbb::blocked_range<long unsigned> r)
                                   { for (long unsigned i=r.begin(); i<r.end(); ++i){
-                    results[items[i]] = get_score_helper(substring_to_index[items[i]], &T_arr, &D_arr, id_to_count); } });
+                    results[items[i]] = get_score_helper(substring_to_index[items[i]], &T_arr, id_to_count); } });
 
-        pair<string, long unsigned> best = *max_element(results.begin(), results.end(), [](const pair<string, long unsigned> a, const pair<string, long unsigned> b)
-                                                        { return a.second < b.second; });
+        pair<string, long unsigned> best = *max_element(results.begin(), results.end(),
+                                                        [](const pair<string, long unsigned> a, const pair<string, long unsigned> b)
+                                                        {
+                                                            if (a.second == b.second)
+                                                            {
+                                                                return a.first.size() < b.first.size();
+                                                            }
+                                                            else
+                                                            {
+                                                                return a.second < b.second;
+                                                            }
+                                                        });
         ranks.push_back(best.first);
         scores.push_back(best.second);
 
         stop = chrono::high_resolution_clock::now();
         duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
-        unordered_set<long unsigned> visited = alter_graph(substring_to_index[best.first], &T_arr, &D_arr, rank);
+        unordered_set<long unsigned> visited = alter_graph(substring_to_index[best.first], &T_arr);
 
         shortlist.clear();
         for (auto &v : visited)
@@ -325,7 +308,7 @@ int main(int argc, char *argv[])
         filesystem::create_directory(out_dir);
     }
     ofstream f;
-    f.open(out_dir + "/tokens.txt");
+    f.open(out_dir + "/max_cover_seq.txt");
     f << hex << setfill('0');
     for (auto r : ranks)
     {
@@ -337,13 +320,10 @@ int main(int argc, char *argv[])
     }
     f << dec;
     f.close();
-    f.open(out_dir + "/merges.txt");
+    f.open(out_dir + "/max_cover_count.txt");
     for (auto s : scores)
     {
         f << s << endl;
     }
     f.close();
-    stop = chrono::high_resolution_clock::now();
-    auto total_duration = chrono::duration_cast<chrono::seconds>(stop - total_start);
-    cout << "total time taken: " << total_duration.count() << " seconds" << endl;
 }
