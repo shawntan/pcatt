@@ -1,6 +1,9 @@
 name: Releases
 
-on: push
+on: 
+  push:
+    branch:
+      - main
 
 jobs:
 
