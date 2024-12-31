@@ -7,11 +7,12 @@ conda install tbb-devel
 ```
 2. If using python wrapper (Todo: automate pip installation)
    
-    a. Install pybind11, simply:
+    a. Using pip:
       ```
-      pip install pybind11
+      pip install -r requirements.txt
+      pip install .
       ```
-    b. Compile greedy_builder
+    b. Or compile manually e.g. (have to specify links)
       ```
       c++ -O3 -Wall -shared -std=c++20 \
       -fPIC $(python3 -m pybind11 --includes) \
@@ -26,7 +27,7 @@ conda install tbb-devel
     c. import and use! Examples in [eval_tokenizer_example.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_tokenizer_example.ipynb)
 3. If using C++ files directly
 
-    a. Compile greedy_cache.py
+    a. Compile greedy_cache.py e.g.:
       ```
       c++ -O3 -std=c++20 \
       -I$CONDA_PREFIX/include/ \
