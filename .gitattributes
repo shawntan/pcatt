@@ -1,0 +1,9 @@
+cpp_outputs export-ignore
+cpp_logs export-ignore
+cpp_inputs export-ignore
+python_logs export-ignore
+pcatt/slow_bpe.py export-ignore
+pcatt/greedy_cache.cpp export-ignore
+pcatt/max_cover.cpp export-ignore
+eval_notebook.ipynb export-ignore
+eval_tokenizer_example.ipynb export-ignore
