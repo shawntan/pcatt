@@ -7,8 +7,11 @@ conda install tbb-devel
 ```
 2. If using python wrapper (Todo: automate pip installation)
    
-    a. Using pip:
+    a. Using pip (use the lightweight source code w/o data/notebooks):
       ```
+      wget "https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.10.tar.gz"
+      unzip pcatt-0.10.zip -d pcatt
+      cd pcatt
       pip install -r requirements.txt
       pip install .
       ```
