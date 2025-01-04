@@ -1,0 +1,30 @@
+Trie constructed
+Trie constructed
+Trie constructed
+Number of texts: 73720 
+
+Words: 97411304
+tiktoken
+Absolute time: 9.57 second
+Absolute time: 10177729.41 words/second
+Relative time: 41.05 second
+Relative time: 2372737.75 words/second
+
+ours with regex
+Absolute time: 4.02 second
+Absolute time: 24244452.08 words/second
+Relative time: 228.92 second
+Relative time: 425522.30 words/second
+
+ours without regex
+Absolute time: 11.15 second
+Absolute time: 8733902.11 words/second
+Relative time: 66.16 second
+Relative time: 1472260.46 words/second
+
+ours new
+Absolute time: 4.13 second
+Absolute time: 23569477.25 words/second
+Relative time: 117.22 second
+Relative time: 831014.43 words/second
+
