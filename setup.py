@@ -22,6 +22,6 @@ setup(
     license = "MIT",
     setup_requires=['pybind11', 'tbb-devel'],
     url = "https://github.com/PreferredAI/pcatt/",
-    download_url = "https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.10.tar.gz",
+    download_url = "https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.11.tar.gz",
     ext_modules = [module1]
 )
