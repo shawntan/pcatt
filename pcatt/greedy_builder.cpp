@@ -775,34 +775,26 @@ public:
             return;
         }
         vector<int unsigned> T_arr(offset, 0);
-        vector<int unsigned> D_arr(offset, 0);
 
         sort(to_check.begin(), to_check.end(), &cover_pos_sorter);
-
-        int unsigned prev_token_rank = -1;
-        int unsigned d_counter = 0;
         for (CoverPos cover : to_check)
         {
             int unsigned i = cover.start - start_idx;
             int unsigned i_o = i - 1;
-            if (i > 0 && T_arr[i_o] != 0 && T_arr[i_o] == T_arr[i] && D_arr[i_o] == D_arr[i])
+            if (i > 0 && T_arr[i_o] != 0 && T_arr[i_o] == T_arr[i])
             {
                 continue;
             }
             int unsigned j = i + cover.offset;
             int unsigned j_o = j - 1;
-            if (j < offset && T_arr[j] != 0 && T_arr[j_o] == T_arr[j] && D_arr[j_o] == D_arr[j])
+            if (j < offset && T_arr[j] != 0 && T_arr[j_o] == T_arr[j])
             {
                 continue;
             }
-
-            d_counter = cover.rank == prev_token_rank ? d_counter + 1 : 0;
             for (int unsigned k = i; k < j; ++k)
             {
                 T_arr[k] = cover.rank;
-                D_arr[k] = d_counter;
             }
-            prev_token_rank = cover.rank;
         }
 
         for (int unsigned i = 0; i < T_arr.size(); ++i)
@@ -837,9 +829,7 @@ public:
                 unsigned int next_stop_idx = trie_cache.traverse(text, mid_idx, mid_idx + max_token_size, &intermediate_results);
                 best_stop_idx = best_stop_idx < next_stop_idx ? next_stop_idx : best_stop_idx;
             }
-
             tokenize_portion(text, start_idx, best_stop_idx - start_idx, intermediate_results, token_results);
-
             start_idx = best_stop_idx - 1;
         }
     }
