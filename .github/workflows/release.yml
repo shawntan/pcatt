@@ -17,4 +17,4 @@ jobs:
       with:
         artifacts: "pcatt/greedy_builder.cpp, requirements.txt, setup.py, README.md, LICENSE"
         bodyFile: "README.md"
-        tag: $GITHUB_REF_NAME
+        tag: ${{ env.GITHUB_REF_NAME }}
