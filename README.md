@@ -8,7 +8,7 @@ Our formulation naturally relaxes to the well-studied weighted maximum coverage 
     a. Using pip (use the lightweight source code w/o data/notebooks):
       ```
       wget "https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.13.tar.gz"
-      unzip pcatt-0.10.zip -d pcatt
+      unzip pcatt-0.13.zip -d pcatt
       cd pcatt
       pip install -r requirements.txt
       pip install .
