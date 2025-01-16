@@ -2,6 +2,8 @@
 In this work, we formulate tokenization as an optimization objective, show that it is NP-hard via a simple reduction from vertex cover, and propose a polynomial-time greedy algorithm **GreedTok**.
 Our formulation naturally relaxes to the well-studied weighted maximum coverage problem which has a simple $(1 - 1/e)$-approximation greedy algorithm.
 
+To do: Huggingface AutoTokenizer interface
+
 ### GreedTok 
 1. If using python wrapper
    
@@ -59,4 +61,12 @@ Our formulation naturally relaxes to the well-studied weighted maximum coverage 
 Evaluations in [eval_notebook.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_notebook.ipynb)
 
 ### Citation
-TBD
+```
+@article{lim2025partition,
+      title={A partition cover approach to tokenization}, 
+      author={Lim, Jia Peng and Choo, Davin and Lauw, Hady W.},
+      year={2025},
+      journal={arXiv preprint arXiv:2501.06246},
+      url={https://arxiv.org/abs/2501.06246}, 
+}
+```

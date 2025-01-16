@@ -1,5 +1,6 @@
 from sysconfig import get_path
 from setuptools import setup, Extension
+from pathlib import Path
 
 PATH_PREFIX = get_path('data')
 module1 = Extension(f'greedy_builder',
@@ -13,9 +14,12 @@ module1 = Extension(f'greedy_builder',
                     libraries = ['tbb'],
                     sources = ['pcatt/greedy_builder.cpp'])
 
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     name="greedtok",
-    version="0.1",
+    version="0.13",
     description="Partition Cover Approach to Tokenization",
     author="JP Lim",
     author_email="jiapeng.lim.2021@phdcs.smu.edu.sg",
@@ -23,5 +27,7 @@ setup(
     setup_requires=['pybind11', 'tbb-devel'],
     url = "https://github.com/PreferredAI/pcatt/",
     download_url = "https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.13.tar.gz",
-    ext_modules = [module1]
+    ext_modules = [module1],
+    long_description=long_description,
+    long_description_content_type='text/markdown'
 )
