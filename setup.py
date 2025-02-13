@@ -4,7 +4,7 @@ from pathlib import Path
 
 PATH_PREFIX = get_path("data")
 modules = []
-for code in ["greedy_builder, greedy_encoder, pco_tokenizer"]:
+for code in ["greedy_builder", "greedy_encoder", "pco_tokenizer"]:
     modules.append(
         Extension(
             code,
@@ -27,7 +27,7 @@ setup(
     author="JP Lim",
     author_email="jiapeng.lim.2021@phdcs.smu.edu.sg",
     license="MIT",
-    setup_requires=["pybind11", "tbb-devel"],
+    setup_requires=["pybind11", "tbb-devel", "transformers>=4.4"],
     url="https://github.com/PreferredAI/pcatt/",
     download_url="https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.13.tar.gz",
     ext_modules=modules,
