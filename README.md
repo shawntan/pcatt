@@ -4,6 +4,16 @@ Our formulation naturally relaxes to the well-studied weighted maximum coverage 
 
 ### Beta: Huggingface AutoTokenizer interface
 
+Install the beta version (for transformers >= 4):
+```
+wget "https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.14-pre2.zip"
+unzip v0.14-pre2.zip -d pcatt
+cd pcatt
+pip install -r requirements.txt
+pip install transformers
+pip install .
+```
+
 For "training" either:
 ```
 from pcatt.hf.greedtok import GreedTok
