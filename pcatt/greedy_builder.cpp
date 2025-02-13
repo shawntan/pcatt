@@ -22,7 +22,6 @@ c++ -O3 -Wall -shared -std=c++20 \
 -fPIC $(python3 -m pybind11 --includes) \
 -I$CONDA_PREFIX/include/ \
 -I$CONDA_PREFIX/include/tbb \
--I$CONDA_PREFIX/include/oneapi \
 -L$CONDA_PREFIX/lib/ \
 -l tbb \
 ./pcatt/greedy_builder.cpp \
@@ -37,7 +36,7 @@ struct SubstringPos
     unsigned int substr_end;
     /**
      * @brief Construct a new Substring Pos object, meant for internal use
-     * 
+     *
      * @param a index of start of word in array
      * @param b index of end of word in array
      * @param c start of substring in word
@@ -58,7 +57,7 @@ class GreedyPCOTokenizer
 public:
     /**
      * @brief custom function to sort SubstringPos, meant for internal use
-     * 
+     *
      * @param lhs SubstringPos 1
      * @param rhs SubstringPos 2
      * @return true when lhs < rhs based on start index
@@ -87,7 +86,7 @@ public:
 
     /**
      * @brief Construct a new Greedy P C O Tokenizer object
-     * 
+     *
      * @param word_counts word to count mapping
      * @param candidate_tokens to investigate
      */
@@ -128,7 +127,7 @@ public:
             for (unsigned int i = 0; i < item.first.size(); ++i)
             {
 
-                for (unsigned int j = i + 1; j < item.first.size() + 1; ++j)
+                for (unsigned int j = i + 2; j < item.first.size() + 1; ++j)
                 {
                     string substr = item.first.substr(i, j - i);
                     if (substr.size() <= 1)
@@ -170,8 +169,8 @@ public:
 
     /**
      * @brief Get the total number of elements that we wish to cover
-     * 
-     * @return unsigned long 
+     *
+     * @return unsigned long
      */
     unsigned long get_singleton_counts()
     {
@@ -180,8 +179,8 @@ public:
 
     /**
      * @brief Get the candidate token size
-     * 
-     * @return unsigned long 
+     *
+     * @return unsigned long
      */
     unsigned long get_candidate_token_size()
     {
@@ -265,7 +264,7 @@ public:
 
     /**
      * @brief Change graph to reflect new state
-     * 
+     *
      * @param items Substring Positions to cover with rank_idx
      * @param T_arr_ptr Array to track assigned tokens
      * @param D_arr_ptr Array to track duplicates
@@ -314,12 +313,29 @@ public:
     }
 
     /**
+     * @brief Get current rank of tokens in python-friendly bytes
+     * (as string may be in invalid UTF-8)
+     *
+     * @return vector<py::bytes> current ranking of tokens
+     */
+    vector<py::bytes> get_ranks()
+    {
+        vector<py::bytes> pybytes_ranks(0);
+        pybytes_ranks.reserve(ranks.size());
+        for (auto &r : ranks)
+        {
+            pybytes_ranks.emplace_back(r);
+        }
+        return pybytes_ranks;
+    }
+
+    /**
      * @brief Advancing the current state with specific tokens
-     * 
+     *
      * @param tokens the order of tokens to be used
      * @return pair<vector<string>, vector<long unsigned>> current ranking of tokens and scores
      */
-    pair<vector<string>, vector<long unsigned>> custom_steps(vector<string> &tokens)
+    pair<vector<py::bytes>, vector<long unsigned>> custom_steps(vector<string> &tokens)
     {
         for (string &token : tokens)
         {
@@ -340,16 +356,16 @@ public:
             shortlist.erase(r);
             results.erase(r);
         }
-        return pair(ranks, scores);
+        return pair(get_ranks(), scores);
     }
 
     /**
      * @brief Advance the current state till we have k number of tokens
-     * 
+     *
      * @param k target number of tokens
      * @return pair<vector<string>, vector<long unsigned>> current ranking of tokens and scores
      */
-    pair<vector<string>, vector<long unsigned>> solve_to_step(unsigned int k)
+    pair<vector<py::bytes>, vector<long unsigned>> solve_to_step(unsigned int k)
     {
         auto total_start = chrono::high_resolution_clock::now();
 
@@ -369,8 +385,8 @@ public:
             auto start = chrono::high_resolution_clock::now();
 
             vector<string> items(shortlist.begin(), shortlist.end());
-            oneapi::tbb::parallel_for(tbb::blocked_range<long unsigned>(0, items.size()), [&](tbb::blocked_range<long unsigned> r)
-                                      { for (long unsigned i=r.begin(); i<r.end(); ++i){
+            tbb::parallel_for(tbb::blocked_range<long unsigned>(0, items.size()), [&](tbb::blocked_range<long unsigned> r)
+                              { for (long unsigned i=r.begin(); i<r.end(); ++i){
                     results[items[i]] = calculate_score(substring_to_index[items[i]], &T_arr, &D_arr, id_to_count); } });
 
             pair<string, long unsigned> best = *max_element(results.begin(), results.end(), [](const pair<string, long unsigned> a, const pair<string, long unsigned> b)
@@ -405,7 +421,7 @@ public:
         }
         auto total_duration = chrono::duration_cast<chrono::seconds>(chrono::high_resolution_clock::now() - total_start);
         cout << "Total time taken: " << total_duration.count() << " seconds" << endl;
-        return pair(ranks, scores);
+        return pair(get_ranks(), scores);
     }
 };
 
@@ -424,9 +440,9 @@ public:
 
     /**
      * @brief Construct a new Trie Node object, meant for internal use
-     * 
-     * @param current_char 
-     * @param current_level 
+     *
+     * @param current_char
+     * @param current_level
      */
     TrieNode(const char current_char, const unsigned int current_level)
     {
@@ -438,7 +454,7 @@ public:
 
     /**
      * @brief Construct a forward-only linked list using Trie Node objects
-     * 
+     *
      * @param s string of characters/singletons
      * @param start start from index of string
      * @param rank_idx to be assigned to the Trie Node that ends s
@@ -463,7 +479,7 @@ public:
 
     /**
      * @brief Determines if there is a Trie Node in c direction
-     * 
+     *
      * @param c direction to traverse
      * @return true if there is no Trie Node
      * @return false otherwise
@@ -475,7 +491,7 @@ public:
 
     /**
      * @brief Link a new Trie Node to current Trie Node
-     * 
+     *
      * @param t new Trie Node
      */
     void add_new_path(TrieNode &t)
@@ -485,9 +501,9 @@ public:
 
     /**
      * @brief Get the next Trie Node in c direction
-     * 
-     * @param c 
-     * @return TrieNode* 
+     *
+     * @param c
+     * @return TrieNode*
      */
     TrieNode *get_next_path(const char &c)
     {
@@ -503,7 +519,7 @@ struct CoverPos
     CoverPos() {};
     /**
      * @brief Construct a new Cover Pos object, meant for internal use
-     * 
+     *
      * @param start_idx of the cover in text
      * @param num_char that separates the start and end indices
      * @param substr_rank rank assigned to this cover
@@ -526,7 +542,7 @@ public:
      * @brief Construct a new Trie Cache object, meant for internal use
      * We use a Trie Cache to interate over text as std::regex is slow.
      * This helps us to determine if there is a possible cover in O(N)
-     * 
+     *
      * @param rules order of tokens in decreasing cover priority
      */
     TrieCache(vector<string> &rules) : rules(rules)
@@ -546,7 +562,7 @@ public:
 
     /**
      * @brief Determine if there is a subsequence that correspond to a token
-     * 
+     *
      * @param s string to investigate
      * @param start_idx starting from which index
      * @param end_idx ending at which index
@@ -589,9 +605,9 @@ class GreedyTokenizer
 
     /**
      * @brief custom function to sort CoverPos, meant for internal use
-     * 
-     * @param lhs 
-     * @param rhs 
+     *
+     * @param lhs
+     * @param rhs
      * @return true if lhs have a greater cover priority than rhs
      * @return false otherwise
      */
@@ -610,7 +626,7 @@ public:
 
     /**
      * @brief Construct a new Greedy Tokenizer object
-     * 
+     *
      * @param rules_input order of tokens in decreasing cover priority
      */
     GreedyTokenizer(vector<string> rules_input)
@@ -644,7 +660,7 @@ public:
 
     /**
      * @brief Get the rules at token position
-     * 
+     *
      * @param index of token
      * @return vector<uint8_t> representation of the token
      */
@@ -654,8 +670,8 @@ public:
     }
 
     /**
-     * @brief Tokenize one word, O(W^3) complexity 
-     * 
+     * @brief Tokenize one word, O(W^3) complexity
+     *
      * @param word to be tokenized
      * @return vector<int unsigned> of tokens' ids
      */
@@ -723,7 +739,7 @@ public:
 
     /**
      * @brief Tokenize text that were already pre-split
-     * 
+     *
      * @param text list of words
      * @return vector<int unsigned> list of tokens' ids
      */
@@ -740,23 +756,23 @@ public:
 
     /**
      * @brief Tokenize text that were already pre-split
-     * 
+     *
      * @param texts list of lists of words
      * @return vector<vector<int unsigned>> list of lists of tokens' ids
      */
     vector<vector<int unsigned>> batch_tokenize_in_parts(const vector<vector<string>> &texts)
     {
         vector<vector<int unsigned>> results(texts.size(), vector<int unsigned>{});
-        oneapi::tbb::parallel_for(tbb::blocked_range<int unsigned>(0, texts.size()), [&](tbb::blocked_range<int unsigned> r)
-                                  { for (int unsigned i=r.begin(); i<r.end(); ++i){
+        tbb::parallel_for(tbb::blocked_range<int unsigned>(0, texts.size()), [&](tbb::blocked_range<int unsigned> r)
+                          { for (int unsigned i=r.begin(); i<r.end(); ++i){
                     results[i] = tokenize_text_in_parts(texts.at(i));} });
         return results;
     }
 
     /**
      * @brief tokenizes a portion of texts, O(W^2lgW) complexity
-     * 
-     * @param text 
+     *
+     * @param text
      * @param start_idx starting at which index
      * @param offset difference in start and end indices
      * @param to_check a list of Cover Pos objects to investigate
@@ -813,8 +829,8 @@ public:
 
     /**
      * @brief Tokenize whole strings without splitting
-     * 
-     * @param text 
+     *
+     * @param text
      * @param token_results place to store tokenization results
      */
     void tokenize_text(const string &text, vector<unsigned int> *token_results)
@@ -836,23 +852,23 @@ public:
 
     /**
      * @brief batch tokenize whole strings, O(W^2lgW) complexity
-     * 
+     *
      * @param texts list of strings
-     * @return vector<vector<int unsigned>> 
+     * @return vector<vector<int unsigned>>
      */
     vector<vector<int unsigned>> batch_tokenize_whole(const vector<string> &texts)
     {
         vector<vector<int unsigned>> results(texts.size());
-        oneapi::tbb::parallel_for(tbb::blocked_range<int unsigned>(0, texts.size()), [&](tbb::blocked_range<int unsigned> r)
-                                  { for (int unsigned i=r.begin(); i<r.end(); ++i){
+        tbb::parallel_for(tbb::blocked_range<int unsigned>(0, texts.size()), [&](tbb::blocked_range<int unsigned> r)
+                          { for (int unsigned i=r.begin(); i<r.end(); ++i){
                                     tokenize_text(texts.at(i), &results.at(i)); } });
         return results;
     }
 
     /**
      * @brief Set the regex pattern object
-     * 
-     * @param pattern 
+     *
+     * @param pattern
      */
     void set_regex_pattern(string pattern)
     {
@@ -861,29 +877,29 @@ public:
 
     /**
      * @brief Split texts using std::regex, then tokenize texts
-     * 
+     *
      * @param texts list of strings
-     * @return vector<vector<int unsigned>> 
+     * @return vector<vector<int unsigned>>
      */
     vector<vector<int unsigned>> batch_split_and_tokenize(vector<string> &texts)
     {
         vector<vector<int unsigned>> results(texts.size(), vector<int unsigned>{});
-        oneapi::tbb::parallel_for(tbb::blocked_range<int unsigned>(0, texts.size()),
-                                  [&](tbb::blocked_range<int unsigned> r)
-                                  {
-                                      for (int unsigned i = r.begin(); i < r.end(); ++i)
-                                      {
-                                          vector<string> text(sregex_token_iterator(texts[i].begin(), texts[i].end(), re), end);
-                                          results[i] = tokenize_text_in_parts(text);
-                                      }
-                                  });
+        tbb::parallel_for(tbb::blocked_range<int unsigned>(0, texts.size()),
+                          [&](tbb::blocked_range<int unsigned> r)
+                          {
+                              for (int unsigned i = r.begin(); i < r.end(); ++i)
+                              {
+                                  vector<string> text(sregex_token_iterator(texts[i].begin(), texts[i].end(), re), end);
+                                  results[i] = tokenize_text_in_parts(text);
+                              }
+                          });
         return results;
     }
 
     /**
      * @brief Score covers by turn, for evaluation purposes
-     * 
-     * @param word 
+     *
+     * @param word
      * @return vector<pair<int unsigned, int unsigned>> when word gets covered
      */
     vector<pair<int unsigned, int unsigned>> score_covers_per_turn(const string &word)
@@ -948,23 +964,23 @@ public:
 
     /**
      * @brief Score covers by turn in batches, for evaluation purposes
-     * 
-     * @param words 
+     *
+     * @param words
      * @return vector<vector<pair<int unsigned, int unsigned>>> when words gets covered
      */
     vector<vector<pair<int unsigned, int unsigned>>> batch_score_covers_per_turn(vector<string> &words)
     {
         vector<vector<pair<int unsigned, int unsigned>>> results(words.size(), vector<pair<int unsigned, int unsigned>>{});
-        oneapi::tbb::parallel_for(tbb::blocked_range<int unsigned>(0, words.size()), [&](tbb::blocked_range<int unsigned> r)
-                                  { for (int unsigned i=r.begin(); i<r.end(); ++i){
+        tbb::parallel_for(tbb::blocked_range<int unsigned>(0, words.size()), [&](tbb::blocked_range<int unsigned> r)
+                          { for (int unsigned i=r.begin(); i<r.end(); ++i){
                     results[i] = score_covers_per_turn(words[i]); } });
         return results;
     }
 
     /**
      * @brief Score constrained covers for evaluation purposes
-     * 
-     * @param word 
+     *
+     * @param word
      * @return int unsigned number of constrained covers
      */
     int unsigned score_covers(const string &word)
@@ -974,23 +990,23 @@ public:
 
     /**
      * @brief Score constrained covers in batches for evaluation purposes
-     * 
-     * @param words 
+     *
+     * @param words
      * @return vector<int unsigned> unsigned number of constrained covers for each respective word
      */
     vector<int unsigned> batch_score_covers(vector<string> &words)
     {
         vector<int unsigned> results(words.size(), 0);
-        oneapi::tbb::parallel_for(tbb::blocked_range<int unsigned>(0, words.size()), [&](tbb::blocked_range<int unsigned> r)
-                                  { for (int unsigned i=r.begin(); i<r.end(); ++i){
+        tbb::parallel_for(tbb::blocked_range<int unsigned>(0, words.size()), [&](tbb::blocked_range<int unsigned> r)
+                          { for (int unsigned i=r.begin(); i<r.end(); ++i){
                     results[i] = tokenize_word(words[i]).size(); } });
         return results;
     }
 
     /**
      * @brief Score max covers for evaluation purposes
-     * 
-     * @param word 
+     *
+     * @param word
      * @return int unsigned number of covers
      */
     int unsigned score_max_cover(const string &word)
@@ -1015,18 +1031,17 @@ public:
         return accumulate(T_arr.begin(), T_arr.end(), 0);
     }
 
-
     /**
      * @brief Score max covers in batches for evaluation purposes
-     * 
-     * @param words 
+     *
+     * @param words
      * @return vector<int unsigned> unsigned number of covers for each respective word
      */
     vector<int unsigned> batch_score_max_cover(vector<string> &words)
     {
         vector<int unsigned> results(words.size(), 0);
-        oneapi::tbb::parallel_for(tbb::blocked_range<int unsigned>(0, words.size()), [&](tbb::blocked_range<int unsigned> r)
-                                  { for (int unsigned i=r.begin(); i<r.end(); ++i){
+        tbb::parallel_for(tbb::blocked_range<int unsigned>(0, words.size()), [&](tbb::blocked_range<int unsigned> r)
+                          { for (int unsigned i=r.begin(); i<r.end(); ++i){
                     results[i] = score_max_cover(words[i]); } });
         return results;
     }
@@ -1038,6 +1053,7 @@ public:
     using GreedyPCOTokenizer::calculate_score;
     using GreedyPCOTokenizer::custom_steps;
     using GreedyPCOTokenizer::get_candidate_token_size;
+    using GreedyPCOTokenizer::get_ranks;
     using GreedyPCOTokenizer::get_singleton_counts;
     using GreedyPCOTokenizer::initialize_graph;
     using GreedyPCOTokenizer::solve_to_step;
@@ -1051,16 +1067,16 @@ GreedyPCOTokenizer *build_Greedy_PCO_Tokenizer(unordered_map<string, long unsign
 class PyGreedyTokenizer : public GreedyTokenizer
 {
 public:
-    using GreedyTokenizer::batch_score_max_cover;
     using GreedyTokenizer::batch_score_covers;
     using GreedyTokenizer::batch_score_covers_per_turn;
+    using GreedyTokenizer::batch_score_max_cover;
     using GreedyTokenizer::batch_split_and_tokenize;
     using GreedyTokenizer::batch_tokenize_in_parts;
     using GreedyTokenizer::batch_tokenize_whole;
     using GreedyTokenizer::GreedyTokenizer;
-    using GreedyTokenizer::score_max_cover;
     using GreedyTokenizer::score_covers;
     using GreedyTokenizer::score_covers_per_turn;
+    using GreedyTokenizer::score_max_cover;
     using GreedyTokenizer::set_regex_pattern;
     using GreedyTokenizer::tokenize_text_in_parts;
     using GreedyTokenizer::tokenize_word;
@@ -1083,6 +1099,7 @@ PYBIND11_MODULE(greedy_builder, var)
         .def("initialize_graph", &GreedyPCOTokenizer::initialize_graph)
         .def("alter_graph", &GreedyPCOTokenizer::alter_graph)
         .def("custom_steps", &GreedyPCOTokenizer::custom_steps)
+        .def("get_ranks", &GreedyPCOTokenizer::get_ranks)
         .def("get_singleton_counts", &GreedyPCOTokenizer::get_singleton_counts)
         .def("get_candidate_token_size", &GreedyPCOTokenizer::get_candidate_token_size);
     var.def("build_greedy_pco_tokenizer", &build_Greedy_PCO_Tokenizer, "Factory function for greedy PCO tokenizer, use this to create your token sets.");
