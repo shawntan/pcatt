@@ -2,7 +2,29 @@
 In this work, we formulate tokenization as an optimization objective, show that it is NP-hard via a simple reduction from vertex cover, and propose a polynomial-time greedy algorithm **GreedTok**.
 Our formulation naturally relaxes to the well-studied weighted maximum coverage problem which has a simple $(1 - 1/e)$-approximation greedy algorithm.
 
-To do: Huggingface AutoTokenizer interface
+### Beta: Huggingface AutoTokenizer interface
+
+For "training" either:
+```
+from pcatt.hf.greedtok import GreedTok
+greedtok = GreedTok().train_new_from_iterator(word_iterator, 100, max_token_length=5, min_word_count=1)
+```
+or
+```
+from pcatt.hf.greedtok import GreedTok
+greedtok = GreedTok().train_new_from_counts(word_count_dict, 100, max_token_length=5, min_word_count=1)
+```
+To use either:
+```
+from pcatt.hf.greedtok import GreedTok
+greedtok = GreedTok.from_pretrained(greedtok_file_directory)
+```
+or
+```
+import pcatt.hf
+greedtok = AutoTokenizer.from_pretrained("greedtok_file_directory")
+```
+Refer to [eval_hf.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_hf.ipynb)
 
 ### GreedTok 
 1. If using python wrapper

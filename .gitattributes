@@ -7,3 +7,5 @@ pcatt/greedy_cache.cpp export-ignore
 pcatt/max_cover.cpp export-ignore
 eval_notebook.ipynb export-ignore
 eval_tokenizer_example.ipynb export-ignore
+pcatt/hf/examples-ignore
+eval_hf.ipynb-ignore
