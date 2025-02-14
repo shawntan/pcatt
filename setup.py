@@ -2,16 +2,27 @@ from sysconfig import get_path
 from setuptools import setup, Extension
 from pathlib import Path
 
-PATH_PREFIX = get_path("data")
+PATH_PREFIXES = [get_path(p) for p in ['data', 'platlib']]
+
 modules = []
+include_dirs = [
+    path
+    for prefix in PATH_PREFIXES
+    for path in [
+        f"{prefix}/include/",
+        f"{prefix}/include/tbb",
+        f"{prefix}/pybind11/include"
+    ]
+]
+
 for code in ["greedy_builder", "greedy_encoder", "pco_tokenizer"]:
     modules.append(
         Extension(
-            code,
+            f"pcatt.{code}",
             extra_compile_args=["-O3", "-std=c++23"],
             define_macros=[("MAJOR_VERSION", "0"), ("MINOR_VERSION", "14-beta")],
-            include_dirs=[f"{PATH_PREFIX}/include/", f"{PATH_PREFIX}/include/tbb"],
-            library_dirs=[f"{PATH_PREFIX}/lib/"],
+            include_dirs=include_dirs,
+            library_dirs=[f"{prefix}/lib/" for prefix in PATH_PREFIXES] ,
             libraries=["tbb"],
             sources=[f"pcatt/{code}.cpp"],
         )
