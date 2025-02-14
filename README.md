@@ -34,7 +34,7 @@ or
 import pcatt.hf
 greedtok = AutoTokenizer.from_pretrained("greedtok_file_directory")
 ```
-Refer to [eval_hf.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_hf.ipynb)
+Refer to [eval_hf.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_hf.ipynb). Note that the code in pcatt.hf is Apache 2.0 (following Huggingface Tokenizers).
 
 ### GreedTok 
 1. If using python wrapper
