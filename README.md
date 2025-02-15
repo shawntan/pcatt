@@ -6,8 +6,8 @@ Our formulation naturally relaxes to the well-studied weighted maximum coverage 
 
 Install the beta version (for transformers >= 4):
 ```
-wget "https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.14-pre2.zip"
-unzip v0.14-pre2.zip -d pcatt
+wget "https://github.com/PreferredAI/pcatt/archive/refs/tags/v0.14-beta2.zip"
+unzip v0.14-beta2.zip -d pcatt
 cd pcatt
 pip install -r requirements.txt
 pip install transformers
@@ -34,7 +34,7 @@ or
 import pcatt.hf
 greedtok = AutoTokenizer.from_pretrained("greedtok_file_directory")
 ```
-Refer to [eval_hf.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_hf.ipynb). Note that the code in pcatt.hf is Apache 2.0 (following Huggingface Tokenizers).
+Refer to [eval_hf.ipynb](https://github.com/PreferredAI/aoatt/blob/main/eval_hf.ipynb) for examples and tips. Note that the code in pcatt.hf is Apache 2.0 (following Huggingface Tokenizers).
 
 ### GreedTok 
 1. If using python wrapper
