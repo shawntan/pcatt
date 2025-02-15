@@ -1633,6 +1633,7 @@ class GreedTok(PreTrainedTokenizer):
 
         max_token_length = kwargs.get("max_token_length", 100)
         min_word_count = kwargs.get("min_word_count", 1)
+        pattern = kwargs.get("pattern", self.pat)
 
         special_tokens_map = {} if special_tokens_map == None else special_tokens_map
         pool = multiprocessing.Pool(kwargs.get("workers", 8))
@@ -1640,7 +1641,7 @@ class GreedTok(PreTrainedTokenizer):
             if not isinstance(b[0], list):  # splitting required
                 # done in python because std::regex does not support pcre2 expressions such as \p{L}
                 self.tokenizer.build_counter_from_text(
-                    pool.map(partial(_splitter, pat=self.pat), b)
+                    pool.map(partial(_splitter, pat=pattern), b)
                 )
             else:
                 self.tokenizer.build_counter_from_text(b)
