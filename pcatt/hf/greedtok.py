@@ -19,7 +19,7 @@
 import copy
 import json
 import os
-import re
+import regex
 import warnings
 from collections import OrderedDict, UserDict
 from collections.abc import Mapping, Sized
@@ -36,8 +36,10 @@ from typing import (
     Union,
     Callable,
 )
-from enum import Enum
 import numpy as np
+import multiprocessing
+from enum import Enum
+from functools import partial
 
 try:
     import tensorflow as tf
@@ -488,6 +490,10 @@ _enums = {
 }
 
 
+def _splitter(text, pat):
+    return regex.findall(pat, text)
+
+
 # PushToHubMixin removed for now
 class GreedTok(PreTrainedTokenizer):
     """ """
@@ -508,7 +514,6 @@ class GreedTok(PreTrainedTokenizer):
         # inputs and kwargs for saving and re-loading (see ``from_pretrained`` and ``save_pretrained``)
         self.init_inputs = ()
         self.init_kwargs = copy.deepcopy(kwargs)
-
         # ranked_tokens should include special tokens
         # e.g. named_special_tokens_map = {'cls_token' : "<CLS>"}
 
@@ -543,6 +548,11 @@ class GreedTok(PreTrainedTokenizer):
             [self.final_tokens_map[v] for v in self.special_tokens]
         )
         self.add_special_tokens(special_tokens_map)
+        self.pattern = kwargs.get(
+            "pattern",
+            r"""'s|'t|'re|'ve|'m|'ll|'d| ?[\p{L}]+| ?[\p{N}]+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""",
+        )
+        self.pat = regex.compile(self.pattern)
 
     def __len__(self) -> int:
         return len(self.final_tokens)
@@ -1583,7 +1593,6 @@ class GreedTok(PreTrainedTokenizer):
     ) -> BatchEncoding:
         NotImplementedError
 
-    # TODO
     def train_new_from_iterator(
         self,
         text_iterator,
@@ -1622,12 +1631,20 @@ class GreedTok(PreTrainedTokenizer):
 
         self.tokenizer = build_pco()
 
-        max_token_length = kwargs.pop("max_token_length", 1000)
-        min_word_count = kwargs.pop("min_word_count", 1)
+        max_token_length = kwargs.get("max_token_length", 100)
+        min_word_count = kwargs.get("min_word_count", 1)
 
         special_tokens_map = {} if special_tokens_map == None else special_tokens_map
+        pool = multiprocessing.Pool(kwargs.get("workers", 8))
         for b in text_iterator:
-            self.tokenizer.build_counter_from_text(b)
+            if not isinstance(b[0], list):  # splitting required
+                # done in python because std::regex does not support pcre2 expressions such as \p{L}
+                self.tokenizer.build_counter_from_text(
+                    pool.map(partial(_splitter, pat=self.pat), b)
+                )
+            else:
+                self.tokenizer.build_counter_from_text(b)
+        pool.close()
         self.tokenizer.initialize_graph(max_token_length, min_word_count)
         special_tokens_list = list(special_tokens_map.values())
         ranked_tokens, score = self.tokenizer.custom_steps(special_tokens_list)

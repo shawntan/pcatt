@@ -1,6 +1,9 @@
 {
   "clean_up_tokenization_spaces": false,
   "max_token_size": 1000,
+  "min_word_count": 1,
   "model_max_length": 1000000000000000019884624838656,
-  "tokenizer_class": "GreedTok"
+  "pattern": " ?[\\p{L}]+| ?[\\p{N}]+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+",
+  "tokenizer_class": "GreedTok",
+  "workers": 10
 }
