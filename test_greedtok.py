@@ -27,7 +27,8 @@ if __name__ == "__main__":
     )
     original_str = "The quicker brown fox jumps over the lazy dog."
 
-    idxs = tokenize.encode(original_str)
+    # idxs = tokenize.encode(original_str)
+    idxs = tokenize(original_str)
     print(idxs)
     print("Original:", original_str)
     print("Tokens:  ", idxs)
