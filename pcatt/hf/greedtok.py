@@ -126,6 +126,23 @@ class GreedTok(PreTrainedTokenizer):
         self.add_special_tokens(special_tokens_map)
         self.encoder = build_greedy_encoder(self.ranked_tokens, special_tokens_map)
 
+        # FIX special tokens out of order
+        new_pairs = []
+        tok2idx = {w: i for i, w in enumerate(self.ranked_tokens)}
+        print(self.ranked_tokens[:3])
+        for idx in list(self._added_tokens_decoder.keys()):
+            token = self._added_tokens_decoder[idx].content.encode("utf-8")
+            new_pairs.append((tok2idx[token], self._added_tokens_decoder[idx]))
+            del self._added_tokens_decoder[idx]
+        # print(self.__dict__["_special_tokens_map"])
+        # print(self._added_tokens_encoder)
+        for idx, token_obj in new_pairs:
+            self._added_tokens_decoder[idx] = token_obj
+            self._added_tokens_encoder[token_obj.content] = idx
+            self._added_tokens_encoder[token_obj.content.encode("utf-8")] = idx
+        self._added_tokens_encoder
+
+
         self.final_tokens = [
             self.encoder.get_rule(i) for i in range(self.encoder.get_rules_size())
         ]
@@ -142,6 +159,10 @@ class GreedTok(PreTrainedTokenizer):
 
     def __len__(self) -> int:
         return len(self.final_tokens)
+    
+    @property
+    def vocab_size(self):
+        return self.__len__()
 
     def get_added_vocab(self):
         return self.final_tokens
@@ -150,6 +171,11 @@ class GreedTok(PreTrainedTokenizer):
         if isinstance(token, str):
             return self.final_tokens_map[token.encode("utf-8")]
         return self.final_tokens_map[token]
+    
+    def _convert_id_to_token(self, id: int):
+        return self.final_ids_map[id]
+
+
 
     def get_vocab(self) -> Dict[str, int]:
         """
@@ -911,7 +937,7 @@ class GreedTok(PreTrainedTokenizer):
         special_tokens_list = list(special_tokens_map.values())
         ranked_tokens, score = self.tokenizer.custom_steps(special_tokens_list)
         ranked_tokens, score = self.tokenizer.solve_to_step(vocab_size)
-        print("len: ", len(ranked_tokens))
+        # print("len: ", len(ranked_tokens))
         return self.__class__(
             ranked_tokens=ranked_tokens,
             special_tokens_map=special_tokens_map,
@@ -958,7 +984,6 @@ class GreedTok(PreTrainedTokenizer):
         special_tokens_list = list(special_tokens_map.values())
         ranked_tokens, score = self.tokenizer.custom_steps(special_tokens_list)
         ranked_tokens, score = self.tokenizer.solve_to_step(vocab_size)
-        print("len: ", len(ranked_tokens))
         return self.__class__(
             ranked_tokens=ranked_tokens,
             special_tokens_map=special_tokens_map,

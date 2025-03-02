@@ -11,14 +11,14 @@ if __name__ == "__main__":
     vocab_size = 2**16
     max_token_size = 20
 
-    out_file = f"vocab_size_{vocab_size}-min_word_count_{min_word_count}-max_token_size_{max_token_size}"
+    out_file = f"pcatt_vocab_size_{vocab_size}-min_word_count_{min_word_count}-max_token_size_{max_token_size}"
     print(out_file)
     tokenize: GreedTok = GreedTok()
     # pat_str = r"""'s|'t|'re|'ve|'m|'ll|'d| ?[\p{L}]+| ?[\p{N}]+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    # dataset: Dataset = load_dataset("wikitext", name="wikitext-2-raw-v1", split="train")
     test_text = "In 1984, Winston Smith is the main protagonist..."
     splitted = regex.findall(pattern, test_text)
     print("Pattern splits:", splitted)
+    # dataset: Dataset = load_dataset("wikitext", name="wikitext-2-raw-v1", split="train")
     dataset: Dataset = load_dataset("Zyphra/dclm-dedup", split="train", num_proc=32)
     num_docs = len(dataset)
     print("Documents:", num_docs)
@@ -43,11 +43,12 @@ if __name__ == "__main__":
         min_word_count=min_word_count,
         # max_token_size=60,
         max_token_size=max_token_size,
-        vocab_size=vocab_size,
+        vocab_size=vocab_size - 256,
         pattern=pattern
     )
 
     tokenize.save_pretrained(out_file)
+    print(len(tokenize))
     original_str = "The quick brown fox jumps over the lazy dog.\n"
     # idxs = tokenize(original_str)
     idxs = tokenize([original_str])['input_ids'][0]
@@ -60,4 +61,8 @@ if __name__ == "__main__":
         if x not in tokenize.special_token_ids
     ])
     print("EncDec:  ", tokenize.decode(idxs))
+    print("eos_token_id:", tokenize.eos_token_id)
+    print("pad_token_id:", tokenize.pad_token_id)
+    print([tokenize.final_ids_map[x] for x in [0, 2]])
+ 
 
