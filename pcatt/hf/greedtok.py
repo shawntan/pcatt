@@ -15,7 +15,7 @@
 #
 # Changes were made to fit GreedTok
 # The input variables to the various methods were preserved
-
+import torch
 import copy
 import json
 import os
@@ -93,7 +93,7 @@ class GreedTok(PreTrainedTokenizer):
     # first name has to correspond to main model input name
     # to make sure `tokenizer.pad(...)` works correctly
     model_input_names: List[str] = ["input_ids", "token_type_ids", "attention_mask"]
-    padding_side: str = "right"
+    padding_side: str = "left"
     truncation_side: str = "right"
 
     def __init__(self, ranked_tokens=[], special_tokens_map={}, **kwargs):
@@ -129,7 +129,6 @@ class GreedTok(PreTrainedTokenizer):
         # FIX special tokens out of order
         new_pairs = []
         tok2idx = {w: i for i, w in enumerate(self.ranked_tokens)}
-        print(self.ranked_tokens[:3])
         for idx in list(self._added_tokens_decoder.keys()):
             token = self._added_tokens_decoder[idx].content.encode("utf-8")
             new_pairs.append((tok2idx[token], self._added_tokens_decoder[idx]))
@@ -502,7 +501,7 @@ class GreedTok(PreTrainedTokenizer):
             stride=stride,
             is_split_into_words=not isinstance(text, str),
             pad_to_multiple_of=1,
-            return_attention_mask=False,
+            return_attention_mask=True,
             return_overflowing_tokens=False,
             return_special_tokens_mask=False,
             return_token_type_ids=False,
@@ -542,7 +541,7 @@ class GreedTok(PreTrainedTokenizer):
         pad_to_multiple_of: Optional[int] = 1,
         return_tensors: Optional[Union[str, TensorType]] = False,
         return_token_type_ids: Optional[bool] = False,
-        return_attention_mask: Optional[bool] = False,
+        return_attention_mask: Optional[bool] = True,
         return_overflowing_tokens: bool = False,
         return_special_tokens_mask: bool = False,
         return_offsets_mapping: bool = False,
@@ -551,6 +550,7 @@ class GreedTok(PreTrainedTokenizer):
         is_batched: bool = True,
         **kwargs,
     ) -> BatchEncoding:
+        # assert return_attention_mask is not None
         # Input type checking for clearer error
         def _is_valid_text_input(t):
             if isinstance(t, str):
@@ -620,6 +620,7 @@ class GreedTok(PreTrainedTokenizer):
         def if_none_convert(x, value):
             return value if x == None else x
 
+        default_attention_mask = True
         if text_pair:
             # account for text pairs
             callback = kwargs.get(
@@ -633,7 +634,7 @@ class GreedTok(PreTrainedTokenizer):
                 encoded_inputs = self.encoder.batch_encode_pairs_presplit(
                     texts=text,
                     text_pairs=text_pair,
-                    return_attention_mask=if_none_convert(return_attention_mask, False),
+                    return_attention_mask=if_none_convert(return_attention_mask, default_attention_mask),
                     return_special_tokens_mask=if_none_convert(
                         return_special_tokens_mask, False
                     ),
@@ -646,7 +647,7 @@ class GreedTok(PreTrainedTokenizer):
                 encoded_inputs = self.encoder.batch_encode_pairs(
                     texts=text,
                     text_pairs=text_pair,
-                    return_attention_mask=if_none_convert(return_attention_mask, False),
+                    return_attention_mask=if_none_convert(return_attention_mask, default_attention_mask),
                     return_special_tokens_mask=if_none_convert(
                         return_special_tokens_mask, False
                     ),
@@ -660,7 +661,7 @@ class GreedTok(PreTrainedTokenizer):
             if is_split_into_words:
                 encoded_inputs = self.encoder.batch_encode_presplit(
                     texts=text,
-                    return_attention_mask=if_none_convert(return_attention_mask, False),
+                    return_attention_mask=if_none_convert(return_attention_mask, default_attention_mask),
                     return_overflowing_tokens=if_none_convert(
                         return_overflowing_tokens, False
                     ),
@@ -673,7 +674,7 @@ class GreedTok(PreTrainedTokenizer):
             else:
                 encoded_inputs = self.encoder.batch_encode(
                     texts=text,
-                    return_attention_mask=if_none_convert(return_attention_mask, False),
+                    return_attention_mask=if_none_convert(return_attention_mask, default_attention_mask),
                     return_overflowing_tokens=if_none_convert(
                         return_overflowing_tokens, False
                     ),
@@ -687,7 +688,7 @@ class GreedTok(PreTrainedTokenizer):
         batch_outputs = BatchEncoding(
             encoded_inputs,
             tensor_type=return_tensors,
-            prepend_batch_axis=True,
+            prepend_batch_axis=False,
         )
 
         return batch_outputs
@@ -873,6 +874,9 @@ class GreedTok(PreTrainedTokenizer):
         """
         if isinstance(sequences[0], int):
             sequences = [sequences]
+        if isinstance(sequences, torch.Tensor):
+            sequences = sequences.tolist()
+        
         return [
                 self.clean_up_tokenization(seq.decode("utf-8", errors="backslashreplace")) 
                 if clean_up_tokenization_spaces
